@@ -48,6 +48,7 @@ export default function PacManGame() {
   const frightenedTimeRef = useRef(0);
   const powerUpTimeRef = useRef(0);
   const animationFrameRef = useRef(0);
+  const particlesRef = useRef<Array<{x: number, y: number, vx: number, vy: number, life: number, color: string}>>([]);
 
   // Load high score from localStorage
   useEffect(() => {
@@ -411,6 +412,18 @@ export default function PacManGame() {
         setScore(s => s + points);
         setCombo(c => c + 1);
         playSound(800, 0.05);
+        
+        // Add particle effect
+        for (let i = 0; i < 3; i++) {
+          particlesRef.current.push({
+            x: newPos.x * CELL_SIZE + CELL_SIZE / 2,
+            y: newPos.y * CELL_SIZE + CELL_SIZE / 2,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2,
+            life: 20,
+            color: '#ffff00'
+          });
+        }
       }
 
       // Check power pellet collision
@@ -461,6 +474,20 @@ export default function PacManGame() {
             const points = 200 * (i + 1);
             setScore(s => s + points);
             playSound(1200, 0.2);
+            
+            // Add explosion particles
+            for (let j = 0; j < 10; j++) {
+              const angle = (Math.PI * 2 * j) / 10;
+              particlesRef.current.push({
+                x: ghost.x * CELL_SIZE + CELL_SIZE / 2,
+                y: ghost.y * CELL_SIZE + CELL_SIZE / 2,
+                vx: Math.cos(angle) * 3,
+                vy: Math.sin(angle) * 3,
+                life: 30,
+                color: '#00ffff'
+              });
+            }
+            
             // Respawn ghost
             const corners = [
               { x: 5, y: 5 },
@@ -688,6 +715,22 @@ export default function PacManGame() {
       }
     });
 
+    // Update and draw particles
+    particlesRef.current = particlesRef.current.filter(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      
+      if (p.life > 0) {
+        ctx.fillStyle = p.color + Math.floor((p.life / 30) * 255).toString(16).padStart(2, '0');
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        return true;
+      }
+      return false;
+    });
+
     // Particle effects for combo
     if (combo > 5) {
       for (let i = 0; i < 3; i++) {
@@ -701,6 +744,20 @@ export default function PacManGame() {
         ctx.arc(x, y, 2, 0, Math.PI * 2);
         ctx.fill();
       }
+    }
+
+    // Draw trail effect for Pac-Man when moving fast
+    if (speedRef.current < 100) {
+      ctx.fillStyle = 'rgba(255, 255, 0, 0.2)';
+      ctx.beginPath();
+      ctx.arc(
+        pacmanRef.current.x * CELL_SIZE + CELL_SIZE / 2,
+        pacmanRef.current.y * CELL_SIZE + CELL_SIZE / 2,
+        CELL_SIZE / 2 + 5,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
     }
   };
 
@@ -812,6 +869,10 @@ export default function PacManGame() {
     </div>
   );
 }
+
+
+
+
 
 
 
